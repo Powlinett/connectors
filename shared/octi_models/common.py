@@ -166,6 +166,27 @@ class TLPMarking(BaseEntity):
         return mapping[self.level]
 
 
+class DomainObject(BaseEntity):
+    """Base class for OpenCTI Domain Objects."""
+
+    author: Optional[Author] = Field(
+        None,
+        description="Author of the report.",
+    )
+    markings: Optional[list[TLPMarking]] = Field(
+        None,
+        description="Markings of the report.",
+    )
+    external_references: Optional[list[ExternalReference]] = Field(
+        None,
+        description="External references of the report.",
+    )
+
+    @abstractmethod
+    def to_stix2_object(self) -> Any:
+        """Make stix object"""
+
+
 class Observable(BaseEntity):
     """Base class for OpenCTI Observables.
 
