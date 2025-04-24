@@ -74,13 +74,15 @@ class DataToSTIXAdapter:
 
         if date_raw:
             if date_raw.startswith("00"):
-                self.helper.log_warning("Wrong format of date: {}".format(date_raw))
+                self.helper.connector_logger.warning(
+                    "Wrong format of date: {}".format(date_raw)
+                )
                 return datetime.now()
 
         try:
             _datetime = datetime.fromisoformat(date_raw)
         except (Exception,):
-            self.helper.log_warning(
+            self.helper.connector_logger.warning(
                 "Failed to format date: {}. Using default.".format(date_raw)
             )
             _datetime = datetime.now()
@@ -102,20 +104,20 @@ class DataToSTIXAdapter:
 
         if date_modified_raw:
             if date_modified_raw.startswith("00"):
-                self.helper.log_warning(
+                self.helper.connector_logger.warning(
                     "Wrong format of date_modified: {}".format(date_modified_raw)
                 )
                 date_modified_raw = None
 
         if date_created_raw:
             if date_created_raw.startswith("00"):
-                self.helper.log_warning(
+                self.helper.connector_logger.warning(
                     "Wrong format of date_created: {}".format(date_created_raw)
                 )
                 date_created_raw = None
 
         if not date_modified_raw and not date_created_raw:
-            self.helper.log_warning("No correct date found. Using default")
+            self.helper.connector_logger.warning("No correct date found. Using default")
             base_ttl_datetime = datetime.now()
         else:
             if date_modified_raw:
@@ -126,7 +128,7 @@ class DataToSTIXAdapter:
             try:
                 base_ttl_datetime = datetime.fromisoformat(base_ttl_raw_date)
             except (Exception,):
-                self.helper.log_warning(
+                self.helper.connector_logger.warning(
                     "Failed to format base_ttl_raw_date: {}. Using default.".format(
                         base_ttl_raw_date
                     )
@@ -158,6 +160,9 @@ class DataToSTIXAdapter:
                 "attack-pattern": "uses",
                 "malware": "uses",
                 "vulnerability": "targets",
+                # Common
+                "base-location": "originates-from",
+                "target-location": "targets",
                 # Threat
                 "threat-actor": "attributed-to",
             },
@@ -637,15 +642,15 @@ class DataToSTIXAdapter:
         _threat_actor_goals = obj.get("goals")
         _threat_actor_roles = obj.get("roles")
 
-        _date_first_seen = self._retrieve_date(json_date_obj, "first-seen")
-        _date_last_seen = self._retrieve_date(json_date_obj, "last-seen")
+        # _date_first_seen = self._retrieve_date(json_date_obj, "first-seen")
+        # _date_last_seen = self._retrieve_date(json_date_obj, "last-seen")
 
         _portal_link = self._retrieve_link(obj)
 
         threat_actor = None
         locations = None
 
-        if _threat_actor_name:
+        if _threat_actor_name and len(_threat_actor_name) > 2:
             threat_actor = ds.ThreatActor(
                 name=_threat_actor_name,
                 c_type=_type,
@@ -653,8 +658,8 @@ class DataToSTIXAdapter:
                 tlp_color="red",
                 labels=[self.collection],
                 aliases=_threat_actor_aliases,
-                first_seen=_date_first_seen,
-                last_seen=_date_last_seen,
+                # first_seen=_date_first_seen,
+                # last_seen=_date_last_seen,
                 goals=_threat_actor_goals,
                 roles=_threat_actor_roles,
             )
@@ -696,63 +701,63 @@ class DataToSTIXAdapter:
         _global_label = self.ta_global_label
         # _country_type = "country"
 
-        _threat_actor_name = obj.get("name")
-        # _threat_actor_country = obj.get("country")
-        # _threat_actor_targeted_countries = obj.get("targeted_countries")
-        _threat_actor_aliases = obj.get("aliases")
-        _threat_actor_description = obj.get("description")
-        _threat_actor_goals = obj.get("goals")
-        _threat_actor_roles = obj.get("roles")
+        _intrusion_set_name = obj.get("name")
+        _intrusion_set_country = obj.get("country")
+        _intrusion_set_targeted_countries = obj.get("targeted_countries")
+        _intrusion_set_aliases = obj.get("aliases")
+        _intrusion_set_description = obj.get("description")
+        _intrusion_set_goals = obj.get("goals")
+        _intrusion_set_roles = obj.get("roles")
 
-        _date_first_seen = self._retrieve_date(json_date_obj, "first-seen")
-        _date_last_seen = self._retrieve_date(json_date_obj, "last-seen")
+        # _date_first_seen = self._retrieve_date(json_date_obj, "first-seen")
+        # _date_last_seen = self._retrieve_date(json_date_obj, "last-seen")
 
         _portal_link = self._retrieve_link(obj)
 
         intrusion_set = None
-        # locations = None
+        locations = None
 
-        if _threat_actor_name:
+        if _intrusion_set_name and len(_intrusion_set_name) > 2:
             intrusion_set = ds.IntrusionSet(
-                name=_threat_actor_name,
+                name=_intrusion_set_name,
                 c_type=_type,
                 global_label=_global_label,
                 tlp_color="red",
                 labels=[self.collection],
-                aliases=_threat_actor_aliases,
-                first_seen=_date_first_seen,
-                last_seen=_date_last_seen,
-                goals=_threat_actor_goals,
-                roles=_threat_actor_roles,
+                aliases=_intrusion_set_aliases,
+                # first_seen=_date_first_seen,
+                # last_seen=_date_last_seen,
+                goals=_intrusion_set_goals,
+                roles=_intrusion_set_roles,
             )
-            intrusion_set.set_description(_threat_actor_description)
+            intrusion_set.set_description(_intrusion_set_description)
             intrusion_set.generate_external_references(_portal_link)
             intrusion_set.generate_stix_objects()
 
-            # base_locations = []
-            # if _threat_actor_country:
-            #     base_locations = self.generate_locations(
-            #         [_threat_actor_country], change_type_to="base-location"
-            #     )
-            # target_locations = []
-            # if _threat_actor_targeted_countries:
-            #     target_locations = self.generate_locations(
-            #         _threat_actor_targeted_countries, change_type_to="target-location"
-            #     )
+            base_locations = []
+            if _intrusion_set_country:
+                base_locations = self.generate_locations(
+                    [_intrusion_set_country], change_type_to="base-location"
+                )
+            target_locations = []
+            if _intrusion_set_targeted_countries:
+                target_locations = self.generate_locations(
+                    _intrusion_set_targeted_countries, change_type_to="target-location"
+                )
 
-            # locations = base_locations + target_locations
-            #
-            # if _threat_actor_name and base_locations:
-            #     self._generate_relations(intrusion_set, base_locations)
-            #
-            # if _threat_actor_name and target_locations:
-            #     self._generate_relations(intrusion_set, target_locations)
+            locations = base_locations + target_locations
+
+            if _intrusion_set_name and base_locations:
+                self._generate_relations(intrusion_set, base_locations)
+
+            if _intrusion_set_name and target_locations:
+                self._generate_relations(intrusion_set, target_locations)
 
             self._generate_relations(intrusion_set, related_objects)
 
             intrusion_set.add_relationships_to_stix_objects()
 
-        return intrusion_set  # , locations
+        return intrusion_set, locations
 
     def generate_stix_file(
         self, obj, json_date_obj=None, related_objects=None, file_is_ioc=True
@@ -776,19 +781,19 @@ class DataToSTIXAdapter:
                 _sha256 = _e.get("sha256", None)
                 if _md5:
                     if not self._valid_hash(_md5, "MD5"):
-                        self.helper.log_error(
+                        self.helper.connector_logger.error(
                             f"Error! {_md5} is not valid MD5. Ignored."
                         )
                         _md5 = None
                 if _sha1:
                     if not self._valid_hash(_sha1, "SHA1"):
-                        self.helper.log_error(
+                        self.helper.connector_logger.error(
                             f"Error! {_sha1} is not valid SHA1. Ignored."
                         )
                         _sha1 = None
                 if _sha256:
                     if not self._valid_hash(_sha256, "SHA256"):
-                        self.helper.log_error(
+                        self.helper.connector_logger.error(
                             f"Error! {_sha256} is not valid SHA256. Ignored."
                         )
                         _sha256 = None
@@ -818,15 +823,19 @@ class DataToSTIXAdapter:
             _sha256 = obj.get("sha256", None)
             if _md5:
                 if not self._valid_hash(_md5, "MD5"):
-                    self.helper.log_error(f"Error! {_md5} is not valid MD5. Ignored.")
+                    self.helper.connector_logger.error(
+                        f"Error! {_md5} is not valid MD5. Ignored."
+                    )
                     _md5 = None
             if _sha1:
                 if not self._valid_hash(_sha1, "SHA1"):
-                    self.helper.log_error(f"Error! {_sha1} is not valid SHA1. Ignored.")
+                    self.helper.connector_logger.error(
+                        f"Error! {_sha1} is not valid SHA1. Ignored."
+                    )
                     _sha1 = None
             if _sha256:
                 if not self._valid_hash(_sha256, "SHA256"):
-                    self.helper.log_error(
+                    self.helper.connector_logger.error(
                         f"Error! {_sha256} is not valid SHA256. Ignored."
                     )
                     _sha256 = None
