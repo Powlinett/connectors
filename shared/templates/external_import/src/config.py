@@ -14,14 +14,7 @@ class _TemplateConfig(_ConfigBaseModel):
     # ===========================
 
     # For example:
-    tlp_level: Literal[
-        "white",
-        "clear",
-        "green",
-        "amber",
-        "amber+strict",
-        "red",
-    ]
+    tlp_level: Literal["white", "clear", "green", "amber", "amber+strict", "red"]
     import_start_date: datetime | timedelta
     api_base_url: str
     api_token: str

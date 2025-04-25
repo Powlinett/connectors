@@ -53,7 +53,7 @@ class ConfigRetrievalError(Exception):
     """Known errors wrapper for config loaders."""
 
 
-def pycti_list_validator(value: str | list[str]) -> list[str]:
+def env_list_validator(value: str | list[str]) -> list[str]:
     """
     Convert comma-separated string into a list of values.
 
@@ -81,8 +81,7 @@ def pycti_list_serializer(value: list[str], info: SerializationInfo) -> str | li
 
 ListFromString = Annotated[
     list[str],
-    NoDecode,
-    BeforeValidator(pycti_list_validator),
+    BeforeValidator(env_list_validator),
     PlainSerializer(pycti_list_serializer, when_used="json"),
 ]
 
@@ -156,6 +155,7 @@ class BaseConfig(BaseSettings, ABC):
         extra="allow",
         env_nested_delimiter="_",
         env_nested_max_split=1,
+        enable_decoding=False,
         yaml_file=f"{_FILE_PATH}/../config.yml",
         env_file=f"{_FILE_PATH}/../.env",
     )

@@ -2,11 +2,9 @@ import sys
 import traceback
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Iterable
 
-from connectors_sdk.external_import.base_collector import BaseCollector
 from connectors_sdk.external_import.base_config import BaseConfig
-from connectors_sdk.external_import.base_converter import BaseConverter
 from connectors_sdk.octi_entities.common import BaseEntity
 from pycti import OpenCTIConnectorHelper  # type: ignore[import-untyped]  # pycti does not provide stubs
 
@@ -30,16 +28,12 @@ class BaseConnector(ABC):
             Doing this will do a lot of operations behind the scene.
         - `config (BaseConfig)`:
             This is the connector configuration.
-        - `collector (BaseCollector)`:
-            Provide methods to collect data from the external service, e.g. an API.
-        - `converter (BaseConverter)`:
-            Provide methods for converting various types of input data into STIX 2.1 objects.
 
     ---
 
     Best practices
         - `self.helper.api.work.initiate_work(...)` is used to initiate a new work
-        - `self.helper.schedule_iso()` is used to encapsulate the main process in a scheduler
+        - `self.helper.schedule_process()` is used to encapsulate the main process in a scheduler
         - `self.helper.connector_logger.[info/debug/warning/error]` is used when logging a message
         - `self.helper.stix2_create_bundle(stix_objects)` is used when creating a bundle
         - `self.helper.send_stix2_bundle(stix_objects_bundle)` is used to send the bundle to RabbitMQ
@@ -47,17 +41,16 @@ class BaseConnector(ABC):
 
     """
 
-    def __init__(
-        self,
-        helper: OpenCTIConnectorHelper,
-        config: BaseConfig,
-        collector: BaseCollector,
-        converter: BaseConverter,
-    ) -> None:
-        self.helper = helper
+    def __init__(self, config: BaseConfig) -> None:
         self.config = config
-        self.collector = collector
-        self.converter = converter
+        self.helper = OpenCTIConnectorHelper(config.model_dump_pycti())
+
+    @abstractmethod
+    def process_data(self) -> Iterable[BaseEntity]:
+        """
+        Collect and process the source of CTI.
+        This method MUST be implemented by each connector and return OCTI entities.
+        """
 
     def get_state(self) -> dict[str, Any]:
         current_state = self.helper.get_state() or {}
@@ -94,8 +87,7 @@ class BaseConnector(ABC):
             self.helper.connector_logger.info("No STIX objects to process.")
             return
 
-        # Ensure consistent bundle
-        octi_objects += [self.converter.author, self.converter.tlp_marking]
+        # TODO: Ensure consistent bundle (with valid Author(s) and TLPMarking(s))
         stix_objects = [item.to_stix2_object() for item in octi_objects]
 
         bundle = self.helper.stix2_create_bundle(items=stix_objects)
@@ -147,10 +139,3 @@ class BaseConnector(ABC):
             message_callback=self.process,
             duration_period=duration_period.total_seconds(),
         )
-
-    @abstractmethod
-    def process_data(self) -> list[BaseEntity]:
-        """
-        Collect and process the source of CTI.
-        This method must be implemented by each connector and return a list of OCTI entities.
-        """
