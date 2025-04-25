@@ -4,9 +4,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from connectors_sdk.external_import.base_collector import BaseCollector
 from connectors_sdk.external_import.base_config import BaseConfig
-from connectors_sdk.external_import.base_converter import BaseConverter
 from connectors_sdk.octi_entities.common import BaseEntity
 from pycti import OpenCTIConnectorHelper  # type: ignore[import-untyped]  # pycti does not provide stubs
 
@@ -30,10 +28,6 @@ class BaseConnector(ABC):
             Doing this will do a lot of operations behind the scene.
         - `config (BaseConfig)`:
             This is the connector configuration.
-        - `collector (BaseCollector)`:
-            Provide methods to collect data from the external service, e.g. an API.
-        - `converter (BaseConverter)`:
-            Provide methods for converting various types of input data into STIX 2.1 objects.
 
     ---
 
@@ -47,17 +41,10 @@ class BaseConnector(ABC):
 
     """
 
-    def __init__(
-        self,
-        helper: OpenCTIConnectorHelper,
-        config: BaseConfig,
-        collector: BaseCollector,
-        converter: BaseConverter,
-    ) -> None:
-        self.helper = helper
+    def __init__(self, config: BaseConfig) -> None:
         self.config = config
-        self.collector = collector
-        self.converter = converter
+        self.helper = OpenCTIConnectorHelper(config.model_dump_pycti())
+
 
     def get_state(self) -> dict[str, Any]:
         current_state = self.helper.get_state() or {}
