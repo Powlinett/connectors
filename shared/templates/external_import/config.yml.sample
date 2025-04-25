@@ -1,0 +1,20 @@
+opencti:
+  url: "http://localhost:8080"
+  token: "d434ce02-e58e-4cac-8b4c-42bf16748e88"
+
+connector:
+  id: "ext-imp--template-connector--uuid"
+  type: "EXTERNAL_IMPORT"
+  name: "Template connector"
+  scope: "report,indicator"
+  log_level: "info"
+  duration_period: "PT1H"
+
+template:
+  tlp_level: "amber+strict"
+  import_start_date: "P30D"
+  api_base_url: mail.infomaniak.ch
+  api_token: emailintelfiligran@ik.me
+
+test:
+  test: test

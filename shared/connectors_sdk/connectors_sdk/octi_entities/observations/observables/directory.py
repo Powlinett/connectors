@@ -1,0 +1,58 @@
+"""Define the OpenCTI Observable."""
+
+from typing import Optional
+
+import stix2  # type: ignore[import-untyped]  # stix2 does not provide stubs
+from connectors_sdk.octi_entities.common import Observable
+from pydantic import AwareDatetime, Field
+
+# from connectors_sdk.octi_entities.observations.observables import File
+
+
+class Directory(Observable):
+    """Represent a directory observable on OpenCTI."""
+
+    path: str = Field(
+        description="The path, as originally observed, to the directory on the file system.",
+        min_length=1,
+    )
+    path_enc: Optional[str] = Field(
+        description="The observed encoding for the path.",
+        default=None,
+    )
+    ctime: Optional[AwareDatetime] = Field(
+        description="Date/time the directory was created.",
+        default=None,
+    )
+    mtime: Optional[AwareDatetime] = Field(
+        description="Date/time the directory was last written to or modified.",
+        default=None,
+    )
+    atime: Optional[AwareDatetime] = Field(
+        description="Date/time the directory was last accessed.",
+        default=None,
+    )
+    contains_refs: Optional[list[Observable]] = Field(
+        description="References to other File and/or Directory objects contained within the directory.",
+        default=None,
+    )
+
+    def to_stix2_object(self) -> stix2.Directory:
+        """Make stix object."""
+        if self._stix2_representation is not None:
+            return self._stix2_representation
+
+        return stix2.Directory(
+            path=self.path,
+            path_enc=self.path_enc,
+            ctime=self.ctime,
+            mtime=self.mtime,
+            atime=self.atime,
+            object_marking_refs=[marking.id for marking in self.markings or []],
+            custom_properties=self._custom_properties_to_stix(),
+            # unused
+            contains_refs=None,  # not implemented on OpenCTI
+            granular_markings=None,
+            defanged=None,
+            extensions=None,
+        )
