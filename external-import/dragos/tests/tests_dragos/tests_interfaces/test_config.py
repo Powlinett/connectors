@@ -223,7 +223,7 @@ def test_config_loader_connector_raises_config_retrieval_error_with_incorrect_at
     class InvalidStubConfigLoaderConnector(StubConfigLoaderConnector):
         @property
         def _id(self):
-            pass  # should return a string
+            return 1234  # should return a string
 
     # When: Instantiating InvalidStubConfigLoaderConnector
     # Then: A ConfigRetrievalError is raised
@@ -316,7 +316,7 @@ def test_config_loader_dragos_raises_config_retrieval_error_with_incorrect_attri
     class InvalidStubConfigLoaderDragos(StubConfigLoaderDragos):
         @property
         def _api_base_url(self):
-            pass  # should return a string
+            return 1234  # should return a string
 
     # When: instantiating InvalidStubConfigLoaderDragos
     # Then: A ConfigRetrievalError is raised
@@ -353,3 +353,44 @@ def test_config_loader_raises_config_retrieval_error_with_incorrect_attributes()
     # Then: A ConfigRetrievalError is raised
     with pytest.raises(ConfigRetrievalError):
         _ = InvalidStubConfigLoader()
+
+
+def test_config_loader_handles_defaults():
+    """Test that the ConfigLoader handles defaults correctly."""
+
+    # Given: Valid implementation of ConfigLoaderDragos only implementing mandatory attributes
+    class StubConfigLoaderDragos(ConfigLoaderDragos):
+        """Stub adapter for testing purpose."""
+
+        @property
+        def _api_base_url(self):
+            return "http://localhost:8080"
+
+        @property
+        def _api_token(self):
+            return "api-token"
+
+        @property
+        def _api_secret(self):
+            return "api-secret"
+
+        # No import_start_date or tlp_level provided, should use defaults
+
+        @property
+        def _import_start_date(self):
+            return None
+
+        @property
+        def _tlp_level(self):
+            return None
+
+    # When: Instantiating StubConfigLoaderDragos
+    stub_config_loader_dragos = StubConfigLoaderDragos()
+
+    # Then: The default attributes should be set correctly
+    assert isinstance(  # noqa: S101 # we indeed call assert in test
+        stub_config_loader_dragos.import_start_date, datetime
+    )
+    assert (  # noqa: S101 # we indeed call assert in test
+        stub_config_loader_dragos.tlp_level is not None
+    )
